@@ -1,0 +1,7 @@
+assignment1/environment
+assignment2/environment
+assignment3/environment
+*.pyc
+*.swp
+*.ipynb_checkpoints
+*.DS_Store
