@@ -25,7 +25,13 @@ def affine_forward(x, w, b):
     # TODO: Implement the affine forward pass. Store the result in out. You   #
     # will need to reshape the input into rows.                               #
     ###########################################################################
-    pass
+    # Dimension D is a product of all the subsequent layer dimension, it's like squashing a tensor into a single
+    # dimensional array.
+    D = np.prod(x.shape[1:])
+    x_tf = x.reshape(x.shape[0], D) # (N x D)
+    # Think of M as the hidden layer dimension. We have M biaes which makes sense.
+    out = np.dot(x_tf, w) # (N x M)
+    out += b
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -53,7 +59,15 @@ def affine_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the affine backward pass.                               #
     ###########################################################################
-    pass
+    D = np.prod(x.shape[1:]) # As usual, squash everything into D dimension
+    x_tf = x.reshape(x.shape[0], D) # (N x D)
+    dw = np.dot(x_tf.T, dout) # (D x N)(N x M) => (D x M)
+    dx = np.dot(dout, w.T).reshape(x.shape) # (N x M)(M x D) => (N x D) then reshape => (N x d_1 x d_2 x d_3 x ... x d_k)
+
+    # Take a careful look at biases, it's actually very easy. If we keep (N x M) as our biaes, we wouldn't need to perform
+    # the squashing. db is simply dout. However, we want biases to be just M and use array broadcasting to apply to N
+    # examples. Thus, we are going to squash them from N dimensions into 1 using sum.
+    db = np.sum(dout.T, axis=1) # (M x N) squash into (M,)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -75,7 +89,7 @@ def relu_forward(x):
     ###########################################################################
     # TODO: Implement the ReLU forward pass.                                  #
     ###########################################################################
-    pass
+    out = np.maximum(0, x)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -98,7 +112,10 @@ def relu_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the ReLU backward pass.                                 #
     ###########################################################################
-    pass
+    # If the forward value is 0 or less, ReLU squashes it and thus there isn't any gradient otherwise it's 1. A ReLu gate,
+    # a.k.a. max gate, routes gradient. The gradient for a max gate is 1 for the highest value, and 0 for all other values.
+    dx = dout
+    dx[x <= 0] = 0
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################

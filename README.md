@@ -7,7 +7,7 @@
 - [x] Convolutional Neural Networks
 - [x] Training Neural Networks 1
 - [x] Training Neural Networks 2
-- [ ] Deep Learning Software
+- [x] Deep Learning Software
 
 ## Notes
 Currently all mathematical notes are written on paper. It will be uploaded when I finish the course.
