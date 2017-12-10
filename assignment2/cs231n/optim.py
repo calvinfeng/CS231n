@@ -65,7 +65,9 @@ def sgd_momentum(w, dw, config=None):
     # TODO: Implement the momentum update formula. Store the updated value in #
     # the next_w variable. You should also use and update the velocity v.     #
     ###########################################################################
-    pass
+    # Note that dw is a direction, and this is Nesterov Momentum
+    v = config['momentum'] * v - config['learning_rate'] * dw
+    next_w = w + v
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -99,7 +101,11 @@ def rmsprop(x, dx, config=None):
     # in the next_x variable. Don't forget to update cache value stored in    #
     # config['cache'].                                                        #
     ###########################################################################
-    pass
+    grad_squared = config['cache']
+    grad_squared = config['decay_rate'] * grad_squared + (1 - config['decay_rate']) * dx * dx
+    next_x = x - config['learning_rate'] * dx / (np.sqrt(grad_squared) + config['epsilon'])
+
+    config['cache'] = grad_squared
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -136,7 +142,12 @@ def adam(x, dx, config=None):
     # the next_x variable. Don't forget to update the m, v, and t variables   #
     # stored in config.                                                       #
     ###########################################################################
-    pass
+    first_moment = config['beta1'] * config['m'] + (1 - config['beta1']) * dx
+    sec_moment = config['beta2'] * config['v'] + (1 - config['beta2']) * dx * dx
+    next_x = x - config['learning_rate'] * first_moment / (np.sqrt(sec_moment) + config['epsilon'])
+
+    config['m'] = first_moment
+    config['v'] = sec_moment
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
