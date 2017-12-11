@@ -186,6 +186,11 @@ class FullyConnectedNet(object):
         for dim in hidden_dims:
             self.params['W' + str(dim_idx)] = np.random.normal(0, scale=weight_scale, size=(prev_dim, dim))
             self.params['b' + str(dim_idx)] = np.zeros(dim,)
+
+            if self.use_batchnorm:
+                self.params['gamma' + str(dim_idx)] = np.ones((1, 1))
+                self.params['beta' + str(dim_idx)] = np.zeros((1, 1))
+
             prev_dim = dim
             dim_idx += 1
 
@@ -249,14 +254,21 @@ class FullyConnectedNet(object):
         # layer, etc.                                                              #
         ############################################################################
         cache_list = {}
-        prev_x = X
+        prev_output = X
         for n in range(self.num_layers):
             l = n + 1
+            weight = self.params['W' + str(l)]
+            bias = self.params['b' + str(l)]
+
             if l == self.num_layers:
-                prev_x, cache_list[l] = affine_forward(prev_x, self.params['W' + str(l)], self.params['b' + str(l)])
+                prev_output, cache_list[l] = affine_forward(prev_output, weight, bias)
             else:
-                prev_x, cache_list[l] = affine_relu_forward(prev_x, self.params['W' + str(l)], self.params['b' + str(l)])
-        scores = prev_x
+                if self.use_batchnorm:
+                    prev_output, cache_list[l] = affine_batchnorm_forward(prev_output, weight, bias, self.params['gamma'+ str(l)], self.params['beta'+ str(l)], self.bn_params[n])
+                else:
+                    prev_output, cache_list[l] = affine_relu_forward(prev_output, weight, bias)
+
+        scores = prev_output
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -289,10 +301,14 @@ class FullyConnectedNet(object):
             l = n + 1
             if l == self.num_layers:
                 din, grads['W' + str(l)], grads['b' + str(l)] = affine_backward(din, cache_list[l])
-                grads['W' + str(l)] += self.reg * self.params['W' + str(l)]
+                grads['W' + str(l)] += self.reg * self.params['W'+str(l)]
             else:
-                din, grads['W' + str(l)], grads['b' + str(l)] = affine_relu_backward(din, cache_list[l])
-                grads['W' + str(l)] += self.reg * self.params['W' + str(l)]
+                if self.use_batchnorm:
+                    din, grads['W' + str(l)], grads['b' + str(l)], grads["gamma"+str(l)], grads["beta"+str(l)] = affine_batchnorm_backward(din, cache_list[l])
+                    grads['W' + str(l)] += self.reg * self.params['W'+str(l)]
+                else:
+                    din, grads['W' + str(l)], grads['b' + str(l)] = affine_relu_backward(din, cache_list[l])
+                    grads['W' + str(l)] += self.reg * self.params['W' + str(l)]
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################

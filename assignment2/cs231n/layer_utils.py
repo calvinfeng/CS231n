@@ -49,6 +49,22 @@ def conv_relu_forward(x, w, b, conv_param):
     return out, cache
 
 
+def affine_batchnorm_forward(x,w,b,gamma,beta,bn_param):
+    a, fc_cache = affine_forward(x, w, b)
+    c, batch_cache = batchnorm_forward(a, gamma, beta, bn_param)
+    out, relu_cache = relu_forward(c)
+    cache = (fc_cache, batch_cache, relu_cache)
+    return out, cache
+
+
+def affine_batchnorm_backward(dout, cache):
+    fc_cache, batch_cache, relu_cache = cache
+    da = relu_backward(dout, relu_cache)
+    dc, dgamma, dbeta = batchnorm_backward_alt(da, batch_cache)
+    dx, dw, db = affine_backward(dc, fc_cache)
+    return dx, dw, db, np.sum(dgamma), np.sum(dbeta)
+
+
 def conv_relu_backward(dout, cache):
     """
     Backward pass for the conv-relu convenience layer.
