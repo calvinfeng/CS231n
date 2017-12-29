@@ -5,7 +5,7 @@ from cs231n.fast_layers import *
 
 def affine_relu_forward(x, w, b):
     """
-    Convenience layer that perorms an affine transform followed by a ReLU
+    Convenience layer that performs an affine transform followed by a ReLU
 
     Inputs:
     - x: Input to the affine layer
@@ -49,20 +49,36 @@ def conv_relu_forward(x, w, b, conv_param):
     return out, cache
 
 
-def affine_batchnorm_forward(x,w,b,gamma,beta,bn_param):
-    a, fc_cache = affine_forward(x, w, b)
-    c, batch_cache = batchnorm_forward(a, gamma, beta, bn_param)
-    out, relu_cache = relu_forward(c)
+def affine_batchnorm_relu_forward(x, w, b, gamma, beta, bn_param):
+    affine_out, fc_cache = affine_forward(x, w, b)
+    bn_out, batch_cache = batchnorm_forward(affine_out, gamma, beta, bn_param)
+    relu_out, relu_cache = relu_forward(bn_out)
     cache = (fc_cache, batch_cache, relu_cache)
+    return relu_out, cache
+
+
+def affine_batchnorm_relu_backward(dout, cache):
+    fc_cache, batch_cache, relu_cache = cache
+    drelu = relu_backward(dout, relu_cache)
+    dbatch, dgamma, dbeta = batchnorm_backward_alt(drelu, batch_cache)
+    dx, dw, db = affine_backward(dbatch, fc_cache)
+    return dx, dw, db, np.sum(dgamma), np.sum(dbeta)
+
+
+def affine_relu_drop_forward(x, w, b, dropout_param):
+    affine_out, fc_cache = affine_forward(x, w, b)
+    relu_out, relu_cache = relu_forward(affine_out)
+    out, drop_cache = dropout_forward(relu_out, dropout_param)
+    cache = (fc_cache, relu_cache, drop_cache)
     return out, cache
 
 
-def affine_batchnorm_backward(dout, cache):
-    fc_cache, batch_cache, relu_cache = cache
-    da = relu_backward(dout, relu_cache)
-    dc, dgamma, dbeta = batchnorm_backward_alt(da, batch_cache)
-    dx, dw, db = affine_backward(dc, fc_cache)
-    return dx, dw, db, np.sum(dgamma), np.sum(dbeta)
+def affine_relu_drop_backward(dout, cache):
+    fc_cache, relu_cache, drop_cache = cache
+    ddrop = dropout_backward(dout, drop_cache)
+    drelu = relu_backward(ddrop, relu_cache)
+    dx, dw, db = affine_backward(drelu, fc_cache)
+    return dx, dw, db
 
 
 def conv_relu_backward(dout, cache):

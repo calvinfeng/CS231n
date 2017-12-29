@@ -264,7 +264,9 @@ class FullyConnectedNet(object):
                 prev_output, cache_list[l] = affine_forward(prev_output, weight, bias)
             else:
                 if self.use_batchnorm:
-                    prev_output, cache_list[l] = affine_batchnorm_forward(prev_output, weight, bias, self.params['gamma'+ str(l)], self.params['beta'+ str(l)], self.bn_params[n])
+                    prev_output, cache_list[l] = affine_batchnorm_relu_forward(prev_output, weight, bias, self.params['gamma'+ str(l)], self.params['beta'+ str(l)], self.bn_params[n])
+                elif self.use_dropout:
+                    prev_output, cache_list[l] = affine_relu_drop_forward(prev_output, weight, bias, self.dropout_param)
                 else:
                     prev_output, cache_list[l] = affine_relu_forward(prev_output, weight, bias)
 
@@ -304,7 +306,10 @@ class FullyConnectedNet(object):
                 grads['W' + str(l)] += self.reg * self.params['W'+str(l)]
             else:
                 if self.use_batchnorm:
-                    din, grads['W' + str(l)], grads['b' + str(l)], grads["gamma"+str(l)], grads["beta"+str(l)] = affine_batchnorm_backward(din, cache_list[l])
+                    din, grads['W' + str(l)], grads['b' + str(l)], grads["gamma"+str(l)], grads["beta"+str(l)] = affine_batchnorm_relu_backward(din, cache_list[l])
+                    grads['W' + str(l)] += self.reg * self.params['W'+str(l)]
+                elif self.use_dropout:
+                    din, grads['W' + str(l)], grads['b' + str(l)] = affine_relu_drop_backward(din, cache_list[l])
                     grads['W' + str(l)] += self.reg * self.params['W'+str(l)]
                 else:
                     din, grads['W' + str(l)], grads['b' + str(l)] = affine_relu_backward(din, cache_list[l])
