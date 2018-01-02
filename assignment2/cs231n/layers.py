@@ -383,7 +383,7 @@ def conv_forward_naive(x, w, b, conv_param):
 
     The input consists of N data points, each with C channels, height H and
     width W. We convolve each input with F different filters, where each filter
-    spans all C channels and has height HH and width HH.
+    spans all C channels and has height HH and width WW.
 
     Input:
     - x: Input data of shape (N, C, H, W)
@@ -400,17 +400,42 @@ def conv_forward_naive(x, w, b, conv_param):
       W' = 1 + (W + 2 * pad - WW) / stride
     - cache: (x, w, b, conv_param)
     """
-    out = None
     ###########################################################################
     # TODO: Implement the convolutional forward pass.                         #
     # Hint: you can use the function np.pad for padding.                      #
     ###########################################################################
-    pass
+    # F is the number of filters, C is the depth of the filter and HH and WW are filter height and filter width
+    N = x.shape[0]
+    num_filter = w.shape[0]
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+
+    # API for pad_width is ((before_1, after_1), ..., (before_N, afterN))
+    pad_width = ((0, 0,), (0, 0), (pad, pad), (pad, pad))
+    padded_x = np.pad(x, pad_width=pad_width, mode='constant', constant_values=0)
+
+    input_height = x.shape[2]
+    input_width = x.shape[3]
+    filter_height = w.shape[2] # a.k.a HH
+    filter_width = w.shape[3] # a.k.a WW
+
+    output_height = int(1 + (input_height + 2 * pad - filter_height) / stride)
+    output_width = int(1 + (input_width + 2 * pad - filter_width) / stride)
+    output = np.zeros((N, num_filter, output_height, output_width))
+
+    for n in range(N):
+        for f in range(num_filter):
+            for out_h in range(output_height):
+                h_idx = out_h * stride
+                for out_w in range(output_width):
+                    w_idx = out_w * stride
+                    conv_sum = np.sum(padded_x[n][:, h_idx:h_idx + filter_height, w_idx:w_idx + filter_width]* w[f])
+                    output[n, f, out_h, out_w] += conv_sum + b[f]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
     cache = (x, w, b, conv_param)
-    return out, cache
+    return output, cache
 
 
 def conv_backward_naive(dout, cache):
@@ -430,7 +455,53 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+    # The backward pass for a convolution operation (for both the data and the weights) is also a convolution, but with
+    # spatially-flipped filters. It's very easy to derive in 1 dimensional example.
+    #
+    # Suppose your x is a (3, 2, 2) i.e. (D, H, W) and filter is (3, 1, 1) i.e. (D, H, W) with stride = 1 and no
+    # padding. We have three numbers that constitute the filter weight matrix, w[0], w[1], and w[2]. You will easily see
+    # that grad_w[0] = x[0][0][0] + x[0][0][1] + x[0][1][0] + x[0][1][1]
+    # that grad_w[1] = x[1][0][0] + x[1][0][1] + x[1][1][0] + x[0][1][1]
+    # that grad_w[2] = x[2][0][0] + x[2][0][1] + x[2][1][0] + x[0][1][1]
+    #
+    # If you have N examples, then just sum across N examples
+    x, w, b, conv_param = cache
+    dw = np.zeros(w.shape)
+    dx = np.zeros(x.shape)
+    db = np.zeros(b.shape)
+
+    N = x.shape[0]
+    num_filter = w.shape[0]
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+
+    # API for pad_width is ((before_1, after_1), ..., (before_N, afterN))
+    pad_width = ((0, 0,), (0, 0), (pad, pad), (pad, pad))
+    padded_x = np.pad(x, pad_width=pad_width, mode='constant', constant_values=0)
+    padded_dx = np.zeros(padded_x.shape)
+
+    input_height = x.shape[2]
+    input_width = x.shape[3]
+    filter_height = w.shape[2] # a.k.a HH
+    filter_width = w.shape[3] # a.k.a WW
+
+    output_height = int(1 + (input_height + 2 * pad - filter_height) / stride)
+    output_width = int(1 + (input_width + 2 * pad - filter_width) / stride)
+
+    for n in range(N):
+        for f in range(num_filter):
+            for out_h in range(output_height):
+                h_idx = out_h * stride
+                for out_w in range(output_width):
+                    w_idx = out_w * stride
+                    dw[f] += padded_x[n, :, h_idx:h_idx + filter_height, w_idx:w_idx + filter_width] * dout[n, f, out_h, out_w]
+                    padded_dx[n, :, h_idx:h_idx + filter_height, w_idx:w_idx + filter_width] += w[f] * dout[n, f, out_h, out_w]
+
+    # Get rid of the padding
+    dx = padded_dx[:, :, pad:pad + input_height, pad:pad + input_width]
+
+    for n in range(b.shape[0]):
+        db[n] = np.sum(dout[:, n, :, :])
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -452,16 +523,34 @@ def max_pool_forward_naive(x, pool_param):
     - out: Output data
     - cache: (x, pool_param)
     """
-    out = None
     ###########################################################################
     # TODO: Implement the max pooling forward pass                            #
     ###########################################################################
-    pass
+    N = x.shape[0]
+    C = x.shape[1]
+    stride = pool_param['stride']
+
+    input_height = x.shape[2]
+    pool_height = pool_param['pool_height']
+    output_height = int(1 + (input_height - pool_height) / stride)
+
+    input_width = x.shape[3]
+    pool_width = pool_param['pool_width']
+    output_width = int(1 + (input_width - pool_width) / stride)
+
+    output = np.zeros((N, C, output_height, output_width))
+    for n in range(N):
+        for c in range(C):
+            for h in range(output_height):
+                h_idx = h * stride
+                for w in range(output_width):
+                    w_idx = w * stride
+                    output[n, c, h, w] = np.max(x[n, c, h_idx:h_idx + pool_height, w_idx:w_idx + pool_width])
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
     cache = (x, pool_param)
-    return out, cache
+    return output, cache
 
 
 def max_pool_backward_naive(dout, cache):
@@ -475,11 +564,33 @@ def max_pool_backward_naive(dout, cache):
     Returns:
     - dx: Gradient with respect to x
     """
-    dx = None
     ###########################################################################
     # TODO: Implement the max pooling backward pass                           #
     ###########################################################################
-    pass
+    x, pool_param = cache
+
+    N = x.shape[0]
+    C = x.shape[1]
+    stride = pool_param['stride']
+
+    input_height = x.shape[2]
+    pool_height = pool_param['pool_height']
+    output_height = int(1 + (input_height - pool_height) / stride)
+
+    input_width = x.shape[3]
+    pool_width = pool_param['pool_width']
+    output_width = int(1 + (input_width - pool_width) / stride)
+
+    dx = np.zeros(x.shape)
+    for n in range(N):
+        for c in range(C):
+            for h in range(output_height):
+                h_idx = h * stride
+                for w in range(output_width):
+                    w_idx = w * stride
+                    curr_pool = x[n, c, h_idx:h_idx + pool_height, w_idx:w_idx + pool_width]
+                    max_idx = np.unravel_index(curr_pool.argmax(), curr_pool.shape)
+                    dx[n, c][max_idx[0] + h_idx, max_idx[1] + w_idx] += 1 * dout[n, c, h, w]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
