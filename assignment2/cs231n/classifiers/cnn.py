@@ -48,7 +48,23 @@ class ThreeLayerConvNet(object):
         # hidden affine layer, and keys 'W3' and 'b3' for the weights and biases   #
         # of the output affine layer.                                              #
         ############################################################################
-        pass
+
+        # Architecture can be found on cs231n.github.io/convolutional-networks/
+        # Input data array is N x 3 x 32 x 32, thus input dim is (3, 32, 32)
+        #   1. Convolutional layer will produce output with dimension (N, 32, 32, 32) using 32 filters
+        #   2. ReLU layer will keep the same dimension
+        #   3. 2x2 Max pooling layer will produce output with dimension (N, 32, 16, 16)
+        #   4. First fully connected layer will then produce output with dimension (N, hidden_dim)
+        #   5. Then ReLU layer again
+        #   6. Second fully connected layer will then produce output with dimension (N, num_classes)
+        chans, height, width = input_dim
+        self.params['W1'] = np.random.normal(0, scale=weight_scale, size=(num_filters, chans, filter_size, filter_size))
+        self.params['W2'] = np.random.normal(0, scale=weight_scale, size=(num_filters *(height//2) * (width//2), hidden_dim))
+        self.params['W3'] = np.random.normal(0, scale=weight_scale, size=(hidden_dim, num_classes))
+        self.params['b1'] = np.zeros((num_filters,))
+        self.params['b2'] = np.zeros((hidden_dim,))
+        self.params['b3'] = np.zeros((num_classes,))
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -74,13 +90,20 @@ class ThreeLayerConvNet(object):
         # pass pool_param to the forward pass for the max-pooling layer
         pool_param = {'pool_height': 2, 'pool_width': 2, 'stride': 2}
 
-        scores = None
         ############################################################################
         # TODO: Implement the forward pass for the three-layer convolutional net,  #
         # computing the class scores for X and storing them in the scores          #
         # variable.                                                                #
         ############################################################################
-        pass
+        conv_relu_pool_out, conv_relu_pool_cache = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+        N, num_filters, height, width = conv_relu_pool_out.shape
+        conv_relu_pool_out = conv_relu_pool_out.reshape((N, num_filters * height * width))
+
+        affine_relu_out, affine_relu_cache = affine_relu_forward(conv_relu_pool_out, W2, b2)
+
+        affine_out, affine_cache = affine_forward(affine_relu_out, W3, b3)
+
+        scores = affine_out
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -95,7 +118,21 @@ class ThreeLayerConvNet(object):
         # data loss using softmax, and make sure that grads[k] holds the gradients #
         # for self.params[k]. Don't forget to add L2 regularization!               #
         ############################################################################
-        pass
+        loss, grad_out = softmax_loss(scores, y)
+
+        grad_affine_out, grads['W3'], grads['b3'] = affine_backward(grad_out, affine_cache)
+        grads['W3'] += self.reg * W3
+
+        grad_affine_relu_out, grads['W2'], grads['b2'] = affine_relu_backward(grad_affine_out, affine_relu_cache)
+        grad_affine_relu_out = grad_affine_relu_out.reshape((N, num_filters, height, width))
+        grads['W2'] += self.reg * W2
+
+        grad_conv_relu_pool_out, grads['W1'], grads['b1'] = conv_relu_pool_backward(grad_affine_relu_out, conv_relu_pool_cache)
+        grads['W1'] += self.reg * W1
+
+        loss += self.reg * np.sum(W3 * W3)
+        loss += self.reg * np.sum(W2 * W2)
+        loss += self.reg * np.sum(W1 * W1)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################

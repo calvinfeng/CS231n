@@ -628,7 +628,17 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     # version of batch normalization defined above. Your implementation should#
     # be very short; ours is less than five lines.                            #
     ###########################################################################
-    pass
+    N, C, height, width = x.shape
+    # First step is to move height and width to the front and then flatten the first three layers
+    flatten_x = x.transpose(0, 2, 3, 1).reshape((N * height * width, C))
+    # Now we have an input matrix that is (D, C) with D = N * height * width
+    out, cache = batchnorm_forward(flatten_x, gamma, beta, bn_param)
+    out = out.reshape((N, height, width, C)).transpose(0, 3, 1, 2)
+    # So what is this doing? We are comparing statistics across channels for each individual pixel and normalize w.r.t
+    # the mean and variance across channels. If I have 100 10x10 images, then I have 10,000 pixels each with 3 channels.
+    # These 10,000 pixels will receive normalization w.r.t the 3 channels, which I think is not doing much...However,
+    # if we are using it on features, then C will be replaced by number of filters and that is useful. Normalizing across
+    # MANY MANY filters gives good result.
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -658,7 +668,10 @@ def spatial_batchnorm_backward(dout, cache):
     # version of batch normalization defined above. Your implementation should#
     # be very short; ours is less than five lines.                            #
     ###########################################################################
-    pass
+    N, C, height, width = dout.shape
+    flatten_dout = dout.transpose(0, 2, 3, 1).reshape((N * height * width, C))
+    dx, dgamma, dbeta = batchnorm_backward_alt(flatten_dout, cache)
+    dx = dx.reshape((N, height, width, C)).transpose(0, 3, 1, 2)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
