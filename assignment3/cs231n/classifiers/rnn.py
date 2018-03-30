@@ -137,7 +137,35 @@ class CaptioningRNN(object):
         # defined above to store loss and gradients; grads[k] should give the      #
         # gradients for self.params[k].                                            #
         ############################################################################
-        pass
+        # Forward pass
+        h0 = np.dot(features, W_proj) + b_proj
+        word_embedding_out, word_embedding_cache = word_embedding_forward(captions_in, W_embed)
+
+        if self.cell_type == "rnn":
+            hidden_state, hidden_cache = rnn_forward(word_embedding_out, h0, Wx, Wh, b)
+        else:
+            raise "Non-RNN is not supported"
+
+        affine_out, affine_cache = temporal_affine_forward(hidden_state, W_vocab, b_vocab)
+        loss, dscore = temporal_softmax_loss(affine_out, captions_out, mask, verbose=False)
+
+        # Backward pass
+        dhidden_state, dW_vocab, db_vocab = temporal_affine_backward(dscore, affine_cache)
+        if self.cell_type == "rnn":
+            dx, dh0, dWx, dWh, db = rnn_backward(dhidden_state, hidden_cache)
+        else:
+            raise "Non-RNN is not supported"
+
+        dW_embed = word_embedding_backward(dx, word_embedding_cache)
+
+        grads['W_embed'] = dW_embed
+        grads['Wx'] = dWx
+        grads['Wh'] = dWh
+        grads['b'] = db
+        grads['W_vocab'] = dW_vocab
+        grads['b_vocab'] = db_vocab
+        grads['W_proj'] = np.dot(features.T, dh0)
+        grads['b_proj'] = np.sum(dh0, axis=0)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -199,7 +227,20 @@ class CaptioningRNN(object):
         # functions; you'll need to call rnn_step_forward or lstm_step_forward in #
         # a loop.                                                                 #
         ###########################################################################
-        pass
+        h0 = np.dot(features, W_proj) + b_proj
+        x = W_embed[self._start]
+        next_c = np.zeros(h0.shape)
+        for t in range(max_length):
+            if self.cell_type == "rnn":
+                next_h, next_h_cache = rnn_step_forward(x, h0, Wx, Wh, b)
+            else:
+                raise "Non-RNN is not supported"
+
+            out = np.dot(next_h, W_vocab) + b_vocab
+            best = np.argmax(out, axis=1)
+            captions[:, t] = best
+            h0 = next_h
+            x = W_embed[best]
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################

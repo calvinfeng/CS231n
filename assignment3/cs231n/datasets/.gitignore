@@ -1,0 +1,5 @@
+coco_captioning/
+*.npz
+*.index
+*.meta
+*.ckpt.*
