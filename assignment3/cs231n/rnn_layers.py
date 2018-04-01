@@ -264,7 +264,17 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     # TODO: Implement the forward pass for a single timestep of an LSTM.        #
     # You may want to use the numerically stable sigmoid implementation above.  #
     #############################################################################
-    pass
+    _, H = prev_c.shape
+
+    acts = np.dot(x, Wx) + np.dot(prev_h, Wh) + b # (N, 4H)
+    input_gate = sigmoid(acts[:, 0:H])
+    forget_gate = sigmoid(acts[:, H:2*H])
+    output_gate = sigmoid(acts[:, 2*H:3*H])
+    gain_gate = np.tanh(acts[:, 3*H:4*H])
+    next_c = forget_gate * prev_c + input_gate * gain_gate
+    next_h = output_gate * np.tanh(next_c)
+
+    cache = (next_h, next_c, input_gate, forget_gate, output_gate, gain_gate, x, prev_h, prev_c, Wx, Wh, b)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -296,7 +306,36 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     # HINT: For sigmoid and tanh you can compute local derivatives in terms of  #
     # the output value from the nonlinearity.                                   #
     #############################################################################
-    pass
+    # Solve for derivatives of i, f, o, and g first.
+    next_h, next_c, input_gate, forget_gate, output_gate, gain_gate, x, prev_h, prev_c, Wx, Wh, b = cache
+
+    # Remember that dprev_c has two contributions, one from dnext_c and another one from dnext_h
+    dnext_h_dnext_c = output_gate * (1 - (np.tanh(next_c) * np.tanh(next_c)))
+
+    dprev_c = (dnext_h * dnext_h_dnext_c * forget_gate) + (dnext_c * forget_gate)
+
+    # Each gate needs to go through the derivative of nonlinearity
+    dinput_gate = (dnext_h * dnext_h_dnext_c * gain_gate) + (dnext_c * gain_gate)
+    dinput_gate = dinput_gate * input_gate * (1 - input_gate)
+
+    dforget_gate = (dnext_h * dnext_h_dnext_c * prev_c) + (dnext_c * prev_c)
+    dforget_gate = dforget_gate * forget_gate * (1 - forget_gate)
+
+    doutput_gate = dnext_h * np.tanh(next_c)
+    doutput_gate = doutput_gate * output_gate * (1 - output_gate)
+
+    dgain_gate = (dnext_h * dnext_h_dnext_c * input_gate) + (dnext_c * input_gate)
+    dgain_gate = dgain_gate * (1 - gain_gate * gain_gate)
+
+    # Now stack them
+    dact = np.concatenate((dinput_gate, dforget_gate, doutput_gate, dgain_gate), axis=1)
+
+    # And do the same-ol gradients
+    dx = np.dot(dact, Wx.T)
+    dprev_h = np.dot(dact, Wh.T)
+    dWx = np.dot(x.T, dact)
+    dWh = np.dot(prev_h.T, dact)
+    db = np.sum(dact, axis=0)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
