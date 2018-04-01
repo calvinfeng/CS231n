@@ -142,9 +142,9 @@ class CaptioningRNN(object):
         word_embedding_out, word_embedding_cache = word_embedding_forward(captions_in, W_embed)
 
         if self.cell_type == "rnn":
-            hidden_state, hidden_cache = rnn_forward(word_embedding_out, h0, Wx, Wh, b)
+            hidden_state, cache = rnn_forward(word_embedding_out, h0, Wx, Wh, b)
         else:
-            raise "Non-RNN is not supported"
+            hidden_state, cache = lstm_forward(word_embedding_out, h0, Wx, Wh, b)
 
         affine_out, affine_cache = temporal_affine_forward(hidden_state, W_vocab, b_vocab)
         loss, dscore = temporal_softmax_loss(affine_out, captions_out, mask, verbose=False)
@@ -152,9 +152,9 @@ class CaptioningRNN(object):
         # Backward pass
         dhidden_state, dW_vocab, db_vocab = temporal_affine_backward(dscore, affine_cache)
         if self.cell_type == "rnn":
-            dx, dh0, dWx, dWh, db = rnn_backward(dhidden_state, hidden_cache)
+            dx, dh0, dWx, dWh, db = rnn_backward(dhidden_state, cache)
         else:
-            raise "Non-RNN is not supported"
+            dx, dh0, dWx, dWh, db = lstm_backward(dhidden_state, cache)
 
         dW_embed = word_embedding_backward(dx, word_embedding_cache)
 
@@ -234,7 +234,7 @@ class CaptioningRNN(object):
             if self.cell_type == "rnn":
                 next_h, next_h_cache = rnn_step_forward(x, h0, Wx, Wh, b)
             else:
-                raise "Non-RNN is not supported"
+                next_h, next_c, next_h_cache = lstm_step_forward(x, h0, next_c, Wx, Wh, b)
 
             out = np.dot(next_h, W_vocab) + b_vocab
             best = np.argmax(out, axis=1)

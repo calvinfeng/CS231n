@@ -370,7 +370,23 @@ def lstm_forward(x, h0, Wx, Wh, b):
     # TODO: Implement the forward pass for an LSTM over an entire timeseries.   #
     # You should use the lstm_step_forward function that you just defined.      #
     #############################################################################
-    pass
+    N, T, D = x.shape
+    _, H = h0.shape
+
+    # Create time series variables
+    h = np.zeros((N, T, H))
+    cell_states = np.zeros((N, T, H))
+    caches = dict()
+
+    # Run it in sequence
+    prev_h = h0
+    prev_c = np.zeros(prev_h.shape)
+    for t in range(T):
+        next_h, next_c, caches[t] = lstm_step_forward(x[:, t, :], prev_h, prev_c, Wx, Wh, b)
+        h[:, t, :], cell_states[:, t, :] = next_h, next_c
+        prev_h, prev_c = next_h, next_c
+
+    cache = (x, h0, Wx, Wh, b, cell_states, caches)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -398,7 +414,20 @@ def lstm_backward(dh, cache):
     # TODO: Implement the backward pass for an LSTM over an entire timeseries.  #
     # You should use the lstm_step_backward function that you just defined.     #
     #############################################################################
-    pass
+    N, T, H = dh.shape
+    dnext_c = np.zeros((N, T, H))
+    x0, h0, Wx, Wh, b, c, caches = cache
+
+    dx, dWx, dWh, db = np.zeros(x0.shape), np.zeros(Wx.shape), np.zeros(Wh.shape), np.zeros(b.shape)
+    dprev_h, dprev_c = np.zeros((N, H)), np.zeros((N, H))
+
+    for t in reversed(range(T)):
+        dx[:, t, :], dprev_h, dprev_c, dWx_t, dWh_t, db_t = lstm_step_backward(dh[:, t, :] + dprev_h, dprev_c, caches[t])
+        dWx += dWx_t
+        dWh += dWh_t
+        db += db_t
+
+    dh0 = dprev_h
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
