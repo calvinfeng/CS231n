@@ -15,7 +15,7 @@
 - [x] Generative Models
 - [x] Deep Reinforcement Learning 
 - [ ] Efficient Methods and Hardware for Deep Learning
-- [ ]Adversarial Examples and Adversarial Training
+- [ ] Adversarial Examples and Adversarial Training
 
 ## Assignments
 ### Assignmnt1
