@@ -5,3 +5,4 @@ assignment3/environment
 *.swp
 *.ipynb_checkpoints
 *.DS_Store
+.vscode/
