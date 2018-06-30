@@ -36,7 +36,7 @@
 - [x] Image Captioning with Vanilla RNNs
 - [x] Image Captioning with LSTMs
 - [x] Network Visualization: Saliency maps, Class Visualization, and Fooling Images
-- [ ] Style Transfer
+- [x] Style Transfer
 - [ ] Generative Adversarial Networks
 
 ## How to run?
