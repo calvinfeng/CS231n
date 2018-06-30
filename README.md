@@ -8,6 +8,14 @@
 - [x] Training Neural Networks 1
 - [x] Training Neural Networks 2
 - [x] Deep Learning Software
+- [x] CNN Architectures
+- [x] Recurrent Neural Networks
+- [x] Detection and Segmentation
+- [x] Visualizing and Understanding
+- [x] Generative Models
+- [x] Deep Reinforcement Learning 
+- [ ] Efficient Methods and Hardware for Deep Learning
+- [ ]Adversarial Examples and Adversarial Training
 
 ## Assignments
 ### Assignmnt1
@@ -27,12 +35,37 @@
 ### Asignment3
 - [x] Image Captioning with Vanilla RNNs
 - [x] Image Captioning with LSTMs
-- [ ] Network Visualization: Saliency maps, Class Visualization, and Fooling Images
+- [x] Network Visualization: Saliency maps, Class Visualization, and Fooling Images
 - [ ] Style Transfer
 - [ ] Generative Adversarial Networks
 
+## How to run?
+Go to the directory of each assignment, create a virtual environment with Python. 
+```
+virtualenv environment
+```
+
+Activate the environment
+```
+source environment/bin/activate
+```
+
+And then install project dependencies
+```
+pip install -r requirements.txt
+```
+
+Tensorflow is probably missing, so install that too
+```
+pip install tensorflow
+```
+
+Then run jupyter notebook and look at each assignment's notebook
+```
+jupyter notebook
+```
+
 ## Notes
-Some of the notes are written on notebook papers and most of the notes are currently being transferred to Jupyter notebooks
-on my machine learning repo. The notes also include my own implementation and refactoring of the existing code from
-Stanford CS231n. In the near future, some of the code shall be re-written in Golang as an experiment on how well Go
-performs on numeric calculation. However, tensorflow model construction and training should still be done in Python.
+Please visit my [Gitbook](https://calvinfeng.gitbooks.io/machine-learning-notebook/content/) for
+notes.
+
