@@ -37,7 +37,7 @@
 - [x] Image Captioning with LSTMs
 - [x] Network Visualization: Saliency maps, Class Visualization, and Fooling Images
 - [x] Style Transfer
-- [ ] Generative Adversarial Networks
+- [x] Generative Adversarial Networks
 
 ## How to run?
 Go to the directory of each assignment, create a virtual environment with Python. 
